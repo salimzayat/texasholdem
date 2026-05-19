@@ -10,6 +10,50 @@ from texasholdem.card import card
 from texasholdem.card.card import Card
 from texasholdem.evaluator.lookup_table import LOOKUP_TABLE
 
+def chen_formula(cards: List[Card]) -> float:
+    """
+    Evaluates the hand strength of a two-card hand using the Chen formula.
+
+    Args:
+        cards (List[Card]): A list of length two of card ints that a player holds.
+    Returns:
+        float: The Chen score for the hand.
+    """
+    rank1 = cards[0].rank
+    rank2 = cards[1].rank
+    suit1 = cards[0].suit
+    suit2 = cards[1].suit
+
+    score = 0.0
+
+    # Base score from the highest card
+    score += max(rank1, rank2) / 2.0
+
+    # Add points for pairs
+    if rank1 == rank2:
+        score *= 2
+        if rank1 >= 11:  # Jacks or better
+            score += 5
+
+    # Add points for suited cards
+    if suit1 == suit2:
+        score += 2
+
+    # Add points for connected cards
+    gap = abs(rank1 - rank2)
+    if gap == 0:
+        pass  # Already accounted for in pairs
+    elif gap == 1:
+        score += 1
+    elif gap == 2:
+        score -= 1
+    elif gap == 3:
+        score -= 4
+    else:
+        score -= 5
+
+    return max(score, 0.0)
+
 
 def _five(cards: List[Card]) -> int:
     """

@@ -1,14 +1,14 @@
 from texasholdem.game.game import TexasHoldEm
 from texasholdem.gui.text_gui import TextGUI
 
-from texasholdem.agents.basic import call_agent, random_agent, ai_agent
+from texasholdem.agents.basic import call_agent, random_agent, ai_agent, logical_agent
 import random
 
 player_agents = {
     1: call_agent,
     2: random_agent,
     3: (ai_agent, random.randint(1, 10)),
-    4: random_agent,
+    4: logical_agent,
     5: call_agent
     # ... player 0 absent = human
 }

@@ -12,7 +12,8 @@ from texasholdem.game.game import TexasHoldEm
 from texasholdem.game.action_type import ActionType
 from texasholdem.game.player_state import PlayerState
 from texasholdem.agents.ai_clients import get_ai_client
-
+from texasholdem.evaluator.evaluator import evaluate, get_rank_class, chen_formula
+from texasholdem.util.log import logger
 
 _client = None
 _model = None
@@ -105,6 +106,30 @@ def random_agent(game: TexasHoldEm, no_fold: bool = False) -> Tuple[ActionType, 
     return moves.sample()
 
 
+def logical_agent(game: TexasHoldEm) -> Tuple[ActionType, Optional[int]]:
+    """
+    A simple rule-based agent that considers hand strength and position.
+    """
+    if len(game.board) < 3:
+        # Pre-flop: play only strong hands (top 20% by rank)
+        chen = chen_formula(game.get_hand(game.current_player))
+        if chen >= 7:  # Chen formula score of 7 or higher is roughly top 20%
+            return ActionType.CALL, None
+        else:
+            return ActionType.FOLD, None        
+
+    rank = evaluate(game.get_hand(game.current_player), game.board)
+    rank_class = get_rank_class(rank)
+    if rank_class == 1:
+        return ActionType.ALL_IN, None
+    elif rank_class <= 2:
+        return ActionType.RAISE, game.minimum_raise
+    elif rank_class <= 4:
+        return ActionType.CALL, None
+    else:
+        return ActionType.FOLD, None
+
+
 def ai_agent(game: TexasHoldEm, risk_tolerance: int = 5) -> Tuple[ActionType, Optional[int]]:
     """
     An AI-powered poker agent backed by a local Ollama model or Anthropic Claude.
@@ -138,11 +163,7 @@ def ai_agent(game: TexasHoldEm, risk_tolerance: int = 5) -> Tuple[ActionType, Op
         f"- Do not include any explanation, just the action line\n"
         f"Examples: CALL    |    FOLD    |    RAISE, 150    |    ALL_IN"
     )
-
-    # log the prompt somewhere
-    with open('logs.txt', 'a', encoding='utf-8') as f:
-        f.write('-----------------\n')
-        f.write(prompt)
+    logger.info(f"AI Agent Prompt:\n{prompt}")
 
     try:
         text = _call_llm(client, model, prompt)

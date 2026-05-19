@@ -15,6 +15,7 @@ import random
 
 import pytest
 
+from texasholdem.card.card import Card
 from texasholdem.evaluator import evaluator
 from tests.evaluator.conftest import (
     generate_sample_hand,
@@ -111,3 +112,19 @@ def test_five_card_percentage():
         evaluator.get_five_card_rank_percentage(score),
         1 - float(score) / float(MAX_HAND_RANK),
     )
+
+
+@pytest.mark.parametrize(
+    "cards, expected",
+    [
+        ([Card("7s"), Card("7h")], 6.0),
+        ([Card("Jd"), Card("Jh")], 15.0),
+        ([Card("As"), Card("Ks")], 9.0),
+        ([Card("5c"), Card("3c")], 2.5),
+        ([Card("9h"), Card("6s")], 0.0),
+        ([Card("2d"), Card("7h")], 0.0),
+    ],
+)
+def test_chen_formula(cards, expected):
+    """Tests the Chen formula for representative two-card hands."""
+    assert evaluator.chen_formula(cards) == pytest.approx(expected)

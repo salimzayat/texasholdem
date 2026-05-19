@@ -16,6 +16,7 @@ from importlib.metadata import version
 from deprecated.sphinx import deprecated
 
 from texasholdem.util.errors import Ignore
+from texasholdem.util.log import logger
 from texasholdem.util.functions import preflight, handle, raise_if
 from texasholdem.card import card
 from texasholdem.game.game import TexasHoldEm
@@ -33,7 +34,7 @@ if _IS_WINDOWS:
     curses.resizeterm = curses.resize_term
 
 
-logger = logging.getLogger(__name__)
+#logger = logging.getLogger(__name__)
 
 
 _BlockDim = namedtuple("_BlockDim", ["rows", "cols"])
@@ -546,7 +547,8 @@ class TextGUI(AbstractGUI):
         Returns:
             str: The captured string ended by a newline
         """
-        rows, _ = self.main_block.window.getmaxyx()
+        rows, cols = self.main_block.window.getmaxyx()
+        logger.info(f"Capturing user input..., {rows}, {cols} rows detected")
         string = ""
         i = len(_PROMPT)
         while True:
