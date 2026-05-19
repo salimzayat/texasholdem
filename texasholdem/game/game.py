@@ -20,7 +20,7 @@ import warnings
 
 from deprecated.sphinx import versionadded, versionchanged
 
-from texasholdem.card.card import Card
+from texasholdem.card.card import Card, card_list_to_pretty_str
 from texasholdem.card.deck import Deck
 from texasholdem.game.history import (
     History,
@@ -1059,6 +1059,84 @@ class TexasHoldEm:
 
         """
         return self.hands.get(player_id, [])
+
+    def get_game_state(self, player_id: int = None) -> str:
+        """
+        Returns a human-readable summary of the current game state suitable
+        for passing to an AI prompt.
+
+        Arguments:
+            player_id (int, optional): The player whose perspective to describe.
+                Defaults to current_player.
+        Returns:
+            str: A formatted game state string.
+        """
+        if player_id is None:
+            player_id = self.current_player
+
+        lines = []
+
+        # Hand context
+        lines.append(f"Hand Phase: {self.hand_phase.name}")
+        lines.append(f"Board: {card_list_to_pretty_str(self.board) or '(no cards yet)'}")
+
+        # Pots
+        total_pot = sum(p.get_total_amount() for p in self.pots)
+        committed = sum(p.get_amount() for p in self.pots)
+        pending = total_pot - committed
+        lines.append(f"Pot: {committed} chips (+ {pending} pending this round = {total_pot} total)")
+
+        lines.append("")
+
+        # This player's perspective
+        position_tags = {
+            self.btn_loc: "Button",
+            self.sb_loc: "Small Blind",
+            self.bb_loc: "Big Blind",
+        }
+        pos = position_tags.get(player_id, "")
+        pos_str = f" ({pos})" if pos else ""
+        lines.append(f"You are: Player {player_id}{pos_str}")
+        lines.append(f"Your hand: {card_list_to_pretty_str(self.get_hand(player_id))}")
+        lines.append(f"Your chips: {self.players[player_id].chips}")
+        lines.append(f"Your current bet: {self.player_bet_amount(player_id)}")
+        lines.append(f"Amount to call: {self.chips_to_call(player_id)}")
+
+        lines.append("")
+
+        # All players
+        lines.append("Players:")
+        for pid in range(self.max_players):
+            player = self.players[pid]
+            if player.state == PlayerState.SKIP:
+                continue
+            pos = position_tags.get(pid, "")
+            pos_str = f" ({pos})" if pos else ""
+            you_str = " [YOU]" if pid == player_id else ""
+            bet = self.player_bet_amount(pid)
+            lines.append(
+                f"  Player {pid}{pos_str}{you_str}: "
+                f"{player.state.name}, "
+                f"{player.chips} chips, "
+                f"bet {bet} this round"
+            )
+
+        lines.append("")
+
+        # Available moves
+        moves = self.get_available_moves()
+        action_strs = []
+        for action_type in moves.action_types:
+            if action_type == ActionType.RAISE:
+                action_strs.append(
+                    f"RAISE (min {moves.raise_range.start} to max {moves.raise_range.stop - 1})"
+                )
+            else:
+                action_strs.append(action_type.name)
+        action_strs.append("ALL_IN")
+        lines.append(f"Available actions: {', '.join(action_strs)}")
+
+        return "\n".join(lines)
 
     def start_hand(self):
         """

@@ -26,6 +26,9 @@ class AbstractGUI(abc.ABC):
         visible_players (Iterable[int], optional): The players whose cards should be
             displayed whenever the :meth:`display_state` method is called, defaults to every
             player.
+        human_players (Iterable[int], optional): When provided, only these players' cards
+            are shown during play; AI players' cards stay hidden until showdown. Ignored
+            if ``visible_players`` is also set.
         enable_animation (bool): If set to True, will play animations, default True.
         no_wait (bool): If set to True, disables waiting mechanisms and will not block.
     Attributes:
@@ -42,6 +45,7 @@ class AbstractGUI(abc.ABC):
         self,
         game: Optional[TexasHoldEm] = None,
         visible_players: Optional[Iterable[int]] = None,
+        human_players: Optional[Iterable[int]] = None,
         enable_animation: bool = True,
         no_wait: bool = False,
     ):
@@ -50,8 +54,13 @@ class AbstractGUI(abc.ABC):
         self.no_wait = no_wait
         self.enable_animation = enable_animation
 
-        # All players visible by default
-        if visible_players is None and game:
+        if visible_players is not None:
+            pass  # caller set visible_players explicitly, honour it
+        elif human_players is not None and game:
+            # only show the human players' cards; AI cards hidden until showdown
+            self.set_visible_players(human_players)
+        elif game:
+            # legacy default: show everyone (pure simulation / replay)
             self.set_visible_players(range(self.game.max_players))
 
     @versionadded(version="0.7.0")
@@ -167,14 +176,19 @@ class AbstractGUI(abc.ABC):
         raise NotImplementedError()
 
     @versionadded(version="0.7.0")
-    def run_step(self):
+    def run_step(self, agent=None, **kwargs):
         """
         Runs a complete GUI step of the hand:
 
             - Display the game state
-            - Prompt for action from the user until valid
+            - If agent is provided, call it for the action; otherwise prompt the user
             - Take the action and display it
             - Display the winners if the hand ended
+
+        Arguments:
+            agent (callable, optional): An agent function ``agent(game) -> (ActionType, int)``
+                to use for the current player. If None, falls back to user input via
+                :meth:`prompt_input` / :meth:`accept_input`.
 
         This is included as a convenience method built from the other necessary
         abstract methods.
@@ -185,16 +199,19 @@ class AbstractGUI(abc.ABC):
 
         self.display_state()
 
-        # Prompt for action input until valid
-        while True:
-            try:
-                self.prompt_input()
-                action, total = self.accept_input()
-                self.game.validate_move(action=action, total=total, throws=True)
-                break
-            except ValueError as err:
-                logger.warning("Caught error: %s.", str(err), exc_info=err)
-                self.display_error(str(err))
+        if agent is not None:
+            action, total = agent(self.game, **kwargs)
+        else:
+            # Prompt for action input until valid
+            while True:
+                try:
+                    self.prompt_input()
+                    action, total = self.accept_input()
+                    self.game.validate_move(action=action, total=total, throws=True)
+                    break
+                except ValueError as err:
+                    logger.warning("Caught error: %s.", str(err), exc_info=err)
+                    self.display_error(str(err))
 
         # Take the action in the game
         self.game.take_action(action, total=total)
