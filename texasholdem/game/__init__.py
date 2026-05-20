@@ -15,4 +15,5 @@ from texasholdem.game.history import (
     PlayerAction,
 )
 from texasholdem.game.player_state import PlayerState
+from texasholdem.game.player_position import PlayerPosition, get_player_position
 from texasholdem.game.move import MoveIterator
