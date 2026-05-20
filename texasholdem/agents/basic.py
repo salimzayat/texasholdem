@@ -128,9 +128,13 @@ def logical_agent(game: TexasHoldEm) -> Tuple[ActionType, Optional[int]]:
         call_threshold = _CALL_THRESHOLD[position]
 
         if chen >= RAISE_THRESHOLD:
-            return ActionType.RAISE, game.min_raise
+            return ActionType.RAISE, game.min_raise()
         elif chen >= call_threshold:
-            return ActionType.CALL, None
+            # it depends on our state.  if the player is facing a bet, we should call.  if not, we should check.
+            if game.players[game.current_player].state == PlayerState.TO_CALL:
+                return ActionType.CALL, None
+            else:
+                return ActionType.CHECK, None
         else:
             return ActionType.FOLD, None
 
@@ -139,7 +143,7 @@ def logical_agent(game: TexasHoldEm) -> Tuple[ActionType, Optional[int]]:
     if rank_class == 1:
         return ActionType.ALL_IN, None
     elif rank_class <= 2:
-        return ActionType.RAISE, game.min_raise
+        return ActionType.RAISE, game.min_raise()
     elif rank_class <= 4:
         return ActionType.CALL, None
     else:
