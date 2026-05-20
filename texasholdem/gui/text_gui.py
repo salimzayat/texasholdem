@@ -473,6 +473,7 @@ class TextGUI(AbstractGUI):
 
         # init curses
         self.main_block = _Block(name="Main Window", window=curses.initscr())
+        self.main_block.window.keypad(True)
 
         # handle resize gracefully
         if not _IS_WINDOWS:
@@ -569,7 +570,7 @@ class TextGUI(AbstractGUI):
                 string = string[:-1]
 
             # stop string collection on newline
-            elif ord_ == _NEWLINE:
+            elif ord_ in (_NEWLINE, curses.KEY_ENTER, 13):
                 break
 
             # Windows Compatibility, need a workaround for SIGINT
@@ -577,16 +578,29 @@ class TextGUI(AbstractGUI):
             elif _IS_WINDOWS and ord_ == _CTRL_C:
                 self._exit_handler()
 
-            # add to the string
-            else:
-                i += 1
+            # ignore resize and arrow keys or other non-character inputs
+            elif ord_ in (
+                curses.KEY_RESIZE,
+                curses.KEY_LEFT,
+                curses.KEY_RIGHT,
+                curses.KEY_UP,
+                curses.KEY_DOWN,
+                curses.KEY_HOME,
+                curses.KEY_END,
+                curses.KEY_PPAGE,
+                curses.KEY_NPAGE,
+                curses.KEY_DC,
+                curses.KEY_IC,
+            ):
+                continue
 
-                try:
-                    string += chr(ord_)
-                except ValueError as err:
-                    # fail silently (don't want to echo) but preserve
-                    # stack trace
-                    raise Ignore() from err
+            # add printable characters only
+            elif 32 <= ord_ < 127:
+                i += 1
+                string += chr(ord_)
+
+            else:
+                continue
 
         return string.strip()
 

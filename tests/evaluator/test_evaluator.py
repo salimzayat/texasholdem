@@ -117,12 +117,11 @@ def test_five_card_percentage():
 @pytest.mark.parametrize(
     "cards, expected",
     [
-        ([Card("7s"), Card("7h")], 6.0),
-        ([Card("Jd"), Card("Jh")], 15.0),
-        ([Card("As"), Card("Ks")], 9.0),
-        ([Card("5c"), Card("3c")], 2.5),
-        ([Card("9h"), Card("6s")], 0.0),
-        ([Card("2d"), Card("7h")], 0.0),
+        ([Card("As"), Card("Ks")], 12.0),
+        ([Card("Tc"), Card("Td")], 10.0),
+        ([Card("5h"), Card("7h")], 6.0),
+        ([Card("2c"), Card("7h")], -1.0),
+        ([Card("Ah"), Card("Ac")], 20.0),
     ],
 )
 def test_chen_formula(cards, expected):

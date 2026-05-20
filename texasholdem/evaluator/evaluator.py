@@ -5,10 +5,34 @@ Evaluates hand strengths with optimizations in terms of speed and memory usage.
 
 import itertools
 from typing import List
+import math
 
 from texasholdem.card import card
 from texasholdem.card.card import Card
 from texasholdem.evaluator.lookup_table import LOOKUP_TABLE
+
+# we have to map the ranks to the Chen formula values
+CHEN_RANKS = {
+    0: 1.0,  # 2
+    1: 1.5,  # 3
+    2: 2.0,  # 4
+    3: 2.5,  # 5
+    4: 3.0,  # 6 
+    5: 3.5,  # 7
+    6: 4.0,  # 8
+    7: 4.5,  # 9
+    8: 5.0,  # 10
+    9: 6.0,  # Jack
+    10: 7.0, # Queen
+    11: 8.0, # King
+    12: 10.0 # Ace
+}
+
+GAP_POINTS = {
+    1: 1,
+    2: 2,
+    3: 4
+}
 
 def chen_formula(cards: List[Card]) -> float:
     """
@@ -19,40 +43,40 @@ def chen_formula(cards: List[Card]) -> float:
     Returns:
         float: The Chen score for the hand.
     """
-    rank1 = cards[0].rank
-    rank2 = cards[1].rank
+
+    internal_rank1 = cards[0].rank
+    internal_rank2 = cards[1].rank
+    rank1 = CHEN_RANKS[internal_rank1]
+    rank2 = CHEN_RANKS[internal_rank2]
     suit1 = cards[0].suit
     suit2 = cards[1].suit
-
+    print(rank1, rank2, suit1, suit2)
     score = 0.0
 
     # Base score from the highest card
-    score += max(rank1, rank2) / 2.0
-
+    score += max(rank1, rank2)
+    print(f'Base score: {score}')
+    
     # Add points for pairs
     if rank1 == rank2:
-        score *= 2
-        if rank1 >= 11:  # Jacks or better
-            score += 5
+        score = max(score * 2, 5.0)
+    print(f'Score after pair adjustment: {score}')
 
     # Add points for suited cards
     if suit1 == suit2:
         score += 2
-
+    print(f'Score after suited adjustment: {score}')
     # Add points for connected cards
-    gap = abs(rank1 - rank2)
-    if gap == 0:
-        pass  # Already accounted for in pairs
-    elif gap == 1:
-        score += 1
-    elif gap == 2:
-        score -= 1
-    elif gap == 3:
-        score -= 4
-    else:
+    gap = abs(internal_rank1 - internal_rank2) - 1
+    if gap in GAP_POINTS:
+        score -= GAP_POINTS[gap]
+    elif gap > 3:
         score -= 5
-
-    return max(score, 0.0)
+    print(f'Gap: {gap}, Score after gap adjustment: {score}')
+    if gap in (0, 1) and max(rank1, rank2) <= 7.0 and rank1 != rank2:
+        score += 1
+    print(f'Score after small gap bonus: {score}')
+    return math.ceil(score)
 
 
 def _five(cards: List[Card]) -> int:
