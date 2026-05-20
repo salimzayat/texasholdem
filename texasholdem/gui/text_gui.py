@@ -549,7 +549,6 @@ class TextGUI(AbstractGUI):
             str: The captured string ended by a newline
         """
         rows, cols = self.main_block.window.getmaxyx()
-        logger.info(f"Capturing user input..., {rows}, {cols} rows detected")
         string = ""
         i = len(_PROMPT)
         while True:

@@ -128,6 +128,7 @@ def logical_agent(game: TexasHoldEm) -> Tuple[ActionType, Optional[int]]:
         call_threshold = _CALL_THRESHOLD[position]
 
         if chen >= RAISE_THRESHOLD:
+            logger.info(f"Logical Agent: Chen score {chen} >= {RAISE_THRESHOLD}, choosing to RAISE {game.min_raise()}")
             return ActionType.RAISE, game.min_raise()
         elif chen >= call_threshold:
             # it depends on our state.  if the player is facing a bet, we should call.  if not, we should check.

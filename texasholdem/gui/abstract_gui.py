@@ -9,7 +9,8 @@ from texasholdem.game.action_type import ActionType
 from texasholdem.game.game import TexasHoldEm
 
 
-logger = logging.getLogger(__name__)
+#logger = logging.getLogger(__name__)
+from texasholdem.util.log import logger
 
 
 class AbstractGUI(abc.ABC):
@@ -201,6 +202,7 @@ class AbstractGUI(abc.ABC):
 
         if agent is not None:
             action, total = agent(self.game, **kwargs)
+            logger.info(f"Agent chose action {action} with total {total}")
         else:
             # Prompt for action input until valid
             while True:
