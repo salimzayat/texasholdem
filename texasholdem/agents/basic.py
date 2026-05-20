@@ -11,6 +11,7 @@ from typing import Tuple, Optional
 from texasholdem.game.game import TexasHoldEm
 from texasholdem.game.action_type import ActionType
 from texasholdem.game.player_state import PlayerState
+from texasholdem.game.player_position import PlayerPosition, get_player_position
 from texasholdem.agents.ai_clients import get_ai_client
 from texasholdem.evaluator.evaluator import evaluate, get_rank_class, chen_formula
 from texasholdem.util.log import logger
@@ -111,12 +112,27 @@ def logical_agent(game: TexasHoldEm) -> Tuple[ActionType, Optional[int]]:
     A simple rule-based agent that considers hand strength and position.
     """
     if len(game.board) < 3:
-        # Pre-flop: play only strong hands (top 20% by rank)
+        # Pre-flop: use position-adjusted thresholds
         chen = chen_formula(game.get_hand(game.current_player))
-        if chen >= 7:  # Chen formula score of 7 or higher is roughly top 20%
+        position = get_player_position(game, game.current_player)
+
+        # raise_threshold: same for all positions (9)
+        # call_threshold: the minimum chen score to call (position-specific)
+        _CALL_THRESHOLD = {
+            PlayerPosition.EARLY: 8,
+            PlayerPosition.MID: 7,
+            PlayerPosition.LATE: 6,
+        }
+        RAISE_THRESHOLD = 9
+
+        call_threshold = _CALL_THRESHOLD[position]
+
+        if chen >= RAISE_THRESHOLD:
+            return ActionType.RAISE, game.minimum_raise
+        elif chen >= call_threshold:
             return ActionType.CALL, None
         else:
-            return ActionType.FOLD, None        
+            return ActionType.FOLD, None
 
     rank = evaluate(game.get_hand(game.current_player), game.board)
     rank_class = get_rank_class(rank)
