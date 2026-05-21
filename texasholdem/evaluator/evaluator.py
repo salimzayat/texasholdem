@@ -10,6 +10,7 @@ import math
 from texasholdem.card import card
 from texasholdem.card.card import Card
 from texasholdem.evaluator.lookup_table import LOOKUP_TABLE
+from texasholdem.util.log import logger
 
 # we have to map the ranks to the Chen formula values
 CHEN_RANKS = {
@@ -50,32 +51,26 @@ def chen_formula(cards: List[Card]) -> float:
     rank2 = CHEN_RANKS[internal_rank2]
     suit1 = cards[0].suit
     suit2 = cards[1].suit
-    print(rank1, rank2, suit1, suit2)
     score = 0.0
 
     # Base score from the highest card
     score += max(rank1, rank2)
-    print(f'Base score: {score}')
     
     # Add points for pairs
     if rank1 == rank2:
         score = max(score * 2, 5.0)
-    print(f'Score after pair adjustment: {score}')
 
     # Add points for suited cards
     if suit1 == suit2:
         score += 2
-    print(f'Score after suited adjustment: {score}')
     # Add points for connected cards
     gap = abs(internal_rank1 - internal_rank2) - 1
     if gap in GAP_POINTS:
         score -= GAP_POINTS[gap]
     elif gap > 3:
         score -= 5
-    print(f'Gap: {gap}, Score after gap adjustment: {score}')
     if gap in (0, 1) and max(rank1, rank2) <= 7.0 and rank1 != rank2:
         score += 1
-    print(f'Score after small gap bonus: {score}')
     return math.ceil(score)
 
 

@@ -128,8 +128,16 @@ def logical_agent(game: TexasHoldEm) -> Tuple[ActionType, Optional[int]]:
         call_threshold = _CALL_THRESHOLD[position]
 
         if chen >= RAISE_THRESHOLD:
-            logger.info(f"Logical Agent: Chen score {chen} >= {RAISE_THRESHOLD}, choosing to RAISE {game.min_raise()}")
-            return ActionType.RAISE, game.min_raise()
+            # we want to raise.  If we have less than the min raise, we have to go all in, which is fine because our hand is good enough to justify it.
+            if game.players[game.current_player].chips <= game.min_raise():
+                logger.info(f"Logical Agent: Chen score {chen} >= {RAISE_THRESHOLD} but only have {game.players[game.current_player].chips} chips, going ALL IN")
+                return ActionType.ALL_IN, None
+
+            total = game.value_to_total(game.min_raise(), game.current_player)
+            logger.info(
+                f"Logical Agent: Chen score {chen} >= {RAISE_THRESHOLD}, choosing to RAISE to {total}"
+            )
+            return ActionType.RAISE, total
         elif chen >= call_threshold:
             # it depends on our state.  if the player is facing a bet, we should call.  if not, we should check.
             if game.players[game.current_player].state == PlayerState.TO_CALL:
@@ -144,7 +152,9 @@ def logical_agent(game: TexasHoldEm) -> Tuple[ActionType, Optional[int]]:
     if rank_class == 1:
         return ActionType.ALL_IN, None
     elif rank_class <= 2:
-        return ActionType.RAISE, game.min_raise()
+        return ActionType.RAISE, game.value_to_total(
+            game.min_raise(), game.current_player
+        )
     elif rank_class <= 4:
         return ActionType.CALL, None
     else:
@@ -184,7 +194,7 @@ def ai_agent(game: TexasHoldEm, risk_tolerance: int = 5) -> Tuple[ActionType, Op
         f"- Do not include any explanation, just the action line\n"
         f"Examples: CALL    |    FOLD    |    RAISE, 150    |    ALL_IN"
     )
-    logger.info(f"AI Agent Prompt:\n{prompt}")
+    logger.debug(f"AI Agent Prompt:\n{prompt}")
 
     try:
         text = _call_llm(client, model, prompt)

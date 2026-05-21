@@ -37,6 +37,8 @@ from texasholdem.game.move import MoveIterator
 from texasholdem.evaluator import evaluator
 from texasholdem.util.functions import check_raise
 
+from texasholdem.util.log import logger
+
 
 class Player:
     # pylint: disable=too-few-public-methods
@@ -818,6 +820,7 @@ class TexasHoldEm:
                 return (
                     False,
                     f"Cannot raise {self.total_to_value(new_total, player_id)}, "
+                    f"where new_total is {new_total}, player_amount is {player_amount}, chips is {self.players[player_id].chips}, "
                     f"less than the min raise {self.min_raise()} and player "
                     f"{player_id} is not going all-in.",
                 )
@@ -1152,6 +1155,8 @@ class TexasHoldEm:
 
         self.hand_phase = HandPhase.PREHAND
         self._handstate_handler[self.hand_phase]()
+        # print out the current positions of things
+        logger.info(f'starting hand {self.num_hands + 1} with button at player {self.btn_loc}, big blind at player {self.bb_loc}, small blind at player {self.sb_loc}')
 
         if self.game_state == GameState.STOPPED:
             return
@@ -1209,6 +1214,7 @@ class TexasHoldEm:
             )
             total = value
 
+        logger.info(f'Player {self.current_player} who has {self.players[self.current_player].chips} chips takes action {action_type.name} with total {total}')
         self.validate_move(action=action_type, total=total, throws=True)
         self._action = (action_type, total)
 

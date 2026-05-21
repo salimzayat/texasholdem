@@ -5,7 +5,7 @@ from texasholdem.agents.basic import call_agent, random_agent, ai_agent, logical
 import random
 
 player_agents = {
-    1: call_agent,
+    1: logical_agent,
     2: random_agent,
     3: (ai_agent, random.randint(1, 10)),
     4: logical_agent,
